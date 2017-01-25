@@ -3,12 +3,9 @@ import argparse
 import logging
 import os
 import json
-import pickle
 import requests
-from datetime import datetime
-from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, InlineQueryHandler
-from telegram.bot import Bot
-from telegram import InlineQueryResultPhoto, InlineQueryResultArticle, InputTextMessageContent, Update, Message
+from telegram.ext import Updater
+from time import sleep
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -29,30 +26,33 @@ class Check():
         return False
 
     def run(self):
-        if not os.path.isfile(self.filePath) or os.path.getsize(self.filePath) == 0:
+        while True:
+            if not os.path.isfile(self.filePath) or os.path.getsize(self.filePath) == 0:
+                with open(self.filePath, "w") as file:
+                    self.lastContent = json.loads(requests.get(self.url).text)
+                    json.dump(self.lastContent, file)
+            else:
+                with open(self.filePath, "r") as file:
+                    self.lastContent = json.load(file)
+
+            r = requests.get(self.url)
+            js = json.loads(r.text)
+
+            if self.lastContent['nodes'] != js['nodes']:
+                updater = Updater(self.authToken)
+                for i in self.lastContent['nodes']:
+                    isNew = self.cacheContainsId(i['id'], js)
+                    if not isNew:
+                        updater.bot.sendMessage(chat_id=self.chatId,
+                                                text="Neuer Knoten <a href=\"https://map.freifunk-hennef.de/#!v:m;n:{}\"\
+                                                >{}</a>".format(i['id'], i['name']), parse_mode="html")
+
+                self.lastContent = js
+
             with open(self.filePath, "w") as file:
-                self.lastContent = json.loads(requests.get(self.url).text)
                 json.dump(self.lastContent, file)
-        else:
-            with open(self.filePath, "r") as file:
-                self.lastContent = json.load(file)
 
-        r = requests.get(self.url)
-        js = json.loads(r.text)
-
-        if self.lastContent['nodes'] != js['nodes']:
-            updater = Updater(self.authToken)
-            for i in self.lastContent['nodes']:
-                isNew = self.cacheContainsId(i['id'], js)
-                if not isNew:
-                    updater.bot.sendMessage(chat_id=self.chatId,
-                                            text="Neuer Knoten <a href=\"https://map.freifunk-hennef.de/#!v:m;n:{}\"\
-                                            >{}</a>".format(i['id'], i['name']), parse_mode="html")
-
-            self.lastContent = js
-
-        with open(self.filePath, "w") as file:
-            json.dump(self.lastContent, file)
+            sleep(60)
 
 
 if __name__ == "__main__":
