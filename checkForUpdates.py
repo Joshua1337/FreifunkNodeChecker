@@ -47,11 +47,12 @@ class Check():
                                                 text="Neuer Knoten <a href=\"https://map.freifunk-hennef.de/#!v:m;n:{}\"\
                                                 >{}</a>".format(i['id'], i['name']), parse_mode="html")
 
-                self.lastContent = js
+            self.lastContent = js
 
             with open(self.filePath, "w") as file:
                 json.dump(self.lastContent, file)
 
+            logging.info("Sleeping 60s")
             sleep(60)
 
 
