@@ -40,8 +40,8 @@ class Check():
 
             if self.lastContent['nodes'] != js['nodes']:
                 updater = Updater(self.authToken)
-                for i in self.lastContent['nodes']:
-                    isNew = self.cacheContainsId(i['id'], js)
+                for i in js['nodes']:
+                    isNew = self.cacheContainsId(i['id'], self.lastContent)
                     if not isNew:
                         updater.bot.sendMessage(chat_id=self.chatId,
                                                 text="Neuer Knoten <a href=\"https://map.freifunk-hennef.de/#!v:m;n:{}\"\
